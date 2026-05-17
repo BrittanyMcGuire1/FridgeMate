@@ -1,11 +1,15 @@
 # Main entry point for the FridgeMate FastAPI backend
 # This file creates the API server and defines all endpoints
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends          # CHANGED: added Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+from sqlalchemy.orm import Session            # NEW: needed for database sessions
 from recipe_generator import generate_recipe
+from database import get_db                   # NEW: imports session dependency
+import models                                 # NEW: imports database models
+import json                                   # NEW: converts lists to strings for storage
 
 # Create the FastAPI application instance
 app = FastAPI()
@@ -33,12 +37,33 @@ def root():
     return {"message": "FridgeMate API is running"}
 
 # Main recipe generation endpoint
-# Accepts ingredient and dietary data, returns a generated recipe
+# Accepts ingredient and dietary data, generates a recipe, and saves it to the database
+# CHANGED: added db parameter so this endpoint has access to the database session
 @app.post("/generate-recipe")
-def create_recipe(request: RecipeRequest):
+def create_recipe(request: RecipeRequest, db: Session = Depends(get_db)):
+    # Generate the recipe using recipe generator function
     recipe = generate_recipe(
         ingredients=request.ingredients,
         dietary_preference=request.dietary_preference,
         allergies=request.allergies
     )
+
+    # NEW: Save the generated recipe to the database
+    db_recipe = models.Recipe(
+        title=recipe["title"],
+        description=recipe.get("description", ""),
+        prep_time=recipe.get("prep_time", ""),
+        cook_time=recipe.get("cook_time", ""),
+        servings=recipe.get("servings", 0),
+        ingredients=json.dumps(recipe["ingredients"]),   # converts list to JSON string for storage
+        instructions=json.dumps(recipe["instructions"]), # converts list to JSON string for storage
+        dietary_preference=request.dietary_preference
+    )
+
+    # NEW: Add to session, commit to save, refresh to get the saved data back
+    db.add(db_recipe)
+    db.commit()
+    db.refresh(db_recipe)
+
+    # Return the recipe to the frontend
     return recipe
