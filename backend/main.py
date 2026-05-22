@@ -18,7 +18,11 @@ app = FastAPI()
 # Without this, browsers block cross-origin requests by default
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "https://fridge-mate-nine.vercel.app",
+        "*"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
