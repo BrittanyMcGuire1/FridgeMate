@@ -19,7 +19,7 @@ function App() {
 
     try {
       // Send POST request to FastAPI backend
-      const response = await fetch('http://127.0.0.1:8000/generate-recipe', {
+      const response = await fetch('https://fridgemate-api.onrender.com/generate-recipe', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
